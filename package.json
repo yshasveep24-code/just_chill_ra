@@ -1,0 +1,12 @@
+{
+  "name": "regex-dfa-visualizer",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Regex to DFA visualizer",
+  "main": "src/main.js",
+  "scripts": {
+    "test": "node src/tests/test_manual.js"
+  },
+  "author": "",
+  "license": "ISC"
+}

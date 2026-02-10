@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automata Visualizer - Regex to DFA Converter</title>
+    <meta name="description"
+        content="Convert regular expressions to DFA through ε-NFA and NFA with beautiful visualizations">
+    <!-- Distinctive Fonts: Azeret Mono, Syne, Share Tech Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;600;700;900&family=Syne:wght@400;600;700;800&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script>
+        window.onerror = function (message, source, lineno, colno, error) {
+            console.error(`Global Error: ${message}\nSource: ${source}:${lineno}:${colno}`, error);
+        };
+        window.addEventListener('unhandledrejection', function (event) {
+            console.warn(`Unhandled Rejection: ${event.reason}`);
+        });
+    </script>
+</head>
+
+<body>
+    <div id="app">
+        <header>
+            <div class="header-left">
+                <button id="help-btn" class="icon-btn" title="Help & Documentation" aria-label="Help">
+                    <span class="icon-inner">?</span>
+                </button>
+                <button id="examples-btn" class="icon-btn" title="Example Patterns" aria-label="Examples">
+                    <span class="icon-inner">Ex</span>
+                </button>
+            </div>
+            <div class="header-content">
+                <div class="logo-mark">◉━━◉</div>
+                <h1>AUTOMATA VISUALIZER</h1>
+                <p class="subtitle">REGEX → ε-NFA → NFA → DFA</p>
+            </div>
+            <div class="header-right">
+                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-icon sun-icon">☀</span>
+                    <span class="theme-icon moon-icon">☾</span>
+                    <span class="theme-text">DARK</span>
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Test Result Display -->
+            <div id="test-result" class="test-result-banner" role="status" aria-live="polite"></div>
+
+            <!-- Main Content Grid -->
+            <div class="content-grid">
+                <!-- Info Panel (left side) -->
+                <aside class="info-panel">
+                    <!-- Controls -->
+                    <div class="info-section">
+                        <div class="section-title-bar">
+                            <span class="section-marker">▸</span>
+                            <span>REGEX INPUT</span>
+                        </div>
+                        <div class="left-controls">
+                            <!-- Regex Section -->
+                            <div class="control-group regex-group">
+                                <label for="regex-input">
+                                    EXPRESSION
+                                    <button class="help-icon"
+                                        data-tooltip="Use operators: | (or), * (star), + (plus), ? (optional), () (grouping)"
+                                        aria-label="Regex help">
+                                        <span>i</span>
+                                    </button>
+                                </label>
+                                <div class="input-wrapper">
+                                    <input type="text" id="regex-input" placeholder="(a|b)*abb"
+                                        aria-describedby="regex-help" autocomplete="off">
+                                    <button id="clear-regex-btn" class="clear-btn" title="Clear"
+                                        aria-label="Clear regex">
+                                        <span>×</span>
+                                    </button>
+                                </div>
+                                <button id="visualize-btn" class="btn-primary" style="width:100%;">
+                                    <span class="btn-marker">▶</span> VISUALIZE
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Test String Section -->
+                    <div class="info-section">
+                        <div class="section-title-bar">
+                            <span class="section-marker">▸</span>
+                            <span>TEST STRING</span>
+                        </div>
+                        <div class="left-controls">
+                            <div class="control-group test-group">
+                                <label for="test-string-input">
+                                    INPUT STRING
+                                    <button class="help-icon" data-tooltip="Test if string is accepted by the automaton"
+                                        aria-label="Test help">
+                                        <span>i</span>
+                                    </button>
+                                </label>
+                                <div class="input-wrapper">
+                                    <input type="text" id="test-string-input" placeholder="aabb" autocomplete="off">
+                                    <button id="clear-test-btn" class="clear-btn" title="Clear"
+                                        aria-label="Clear test string">
+                                        <span>×</span>
+                                    </button>
+                                </div>
+                                <button id="test-string-btn" class="btn-test" style="width:100%;">
+                                    <span class="btn-marker">✓</span> RUN TEST
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export Section -->
+                    <div class="info-section">
+                        <div class="section-title-bar">
+                            <span class="section-marker">▸</span>
+                            <span>EXPORT</span>
+                        </div>
+                        <div class="left-controls">
+                            <div class="control-group export-group">
+                                <div class="button-group" style="display:flex; gap:0.5rem;">
+                                    <button id="export-svg-btn" class="btn-secondary" title="Export as SVG"
+                                        style="flex:1;">
+                                        SVG
+                                    </button>
+                                    <button id="export-png-btn" class="btn-secondary" title="Export as PNG"
+                                        style="flex:1;">
+                                        PNG
+                                    </button>
+                                    <button id="export-json-btn" class="btn-secondary" title="Export as JSON"
+                                        style="flex:1;">
+                                        JSON
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Info Panel Buttons (open popups) -->
+                    <div class="info-buttons">
+                        <button id="open-transition-popup" class="info-popup-btn">
+                            <span class="btn-bracket">[</span>
+                            <span>TRANSITION TABLE</span>
+                            <span class="btn-bracket">]</span>
+                        </button>
+                        <button id="open-states-popup" class="info-popup-btn">
+                            <span class="btn-bracket">[</span>
+                            <span>STATE INFO</span>
+                            <span class="btn-bracket">]</span>
+                        </button>
+                        <button id="open-log-popup" class="info-popup-btn">
+                            <span class="btn-bracket">[</span>
+                            <span>CONVERSION LOG</span>
+                            <span class="btn-bracket">]</span>
+                        </button>
+                    </div>
+
+                    <!-- Quick Statistics (stays inline) -->
+                    <div class="info-section stats-section">
+                        <div class="section-title-bar">
+                            <span class="section-marker">▸</span>
+                            <span>STATISTICS</span>
+                        </div>
+                        <div id="statistics-container" class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-label">STATES</span>
+                                <span class="stat-value" id="stat-states">—</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">TRANS</span>
+                                <span class="stat-value" id="stat-transitions">—</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">ALPHA</span>
+                                <span class="stat-value" id="stat-alphabet">—</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">FINAL</span>
+                                <span class="stat-value" id="stat-final">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Visualization Area (right side) -->
+                <section id="visualization-section" class="visualization-panel">
+                    <div class="panel-header">
+                        <h2 id="stage-title">
+                            <span class="title-bracket">┌──</span>
+                            AUTOMATON VISUALIZATION
+                            <span class="title-bracket">──┐</span>
+                        </h2>
+                        <div class="view-controls">
+                            <button id="zoom-in-btn" class="icon-btn" title="Zoom In" aria-label="Zoom in">
+                                <span class="icon-inner">+</span>
+                            </button>
+                            <button id="zoom-out-btn" class="icon-btn" title="Zoom Out" aria-label="Zoom out">
+                                <span class="icon-inner">−</span>
+                            </button>
+                            <button id="reset-view-btn" class="icon-btn" title="Reset View" aria-label="Reset view">
+                                <span class="icon-inner">⟲</span>
+                            </button>
+                            <button id="fullscreen-btn" class="icon-btn" title="Fullscreen"
+                                aria-label="Toggle fullscreen">
+                                <span class="icon-inner">⛶</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="graph-container" role="img" aria-label="Automaton graph visualization">
+                        <div class="placeholder-message">
+                            <div class="placeholder-icon">
+                                <div class="scope-circle"></div>
+                                <div class="scope-line scope-line-h"></div>
+                                <div class="scope-line scope-line-v"></div>
+                            </div>
+                            <p class="placeholder-text">ENTER REGULAR EXPRESSION</p>
+                            <p class="placeholder-hint">PRESS <button id="quick-example-btn"
+                                    class="link-btn">EXAMPLES</button> FOR PATTERNS</p>
+                        </div>
+                    </div>
+                    <div class="graph-footer">
+                        <div id="graph-stats" class="graph-stats"></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Transition Table Popup -->
+            <div id="transition-popup" class="info-popup-overlay" style="display:none;">
+                <div class="info-popup">
+                    <div class="info-popup-header">
+                        <h2>
+                            <span class="popup-marker">◆</span>
+                            TRANSITION TABLE
+                        </h2>
+                        <button class="info-popup-close" data-close="transition-popup">
+                            <span>×</span>
+                        </button>
+                    </div>
+                    <div class="info-popup-body" id="transition-table-container">
+                        <div class="empty-state">
+                            <div class="empty-icon">∅</div>
+                            <p>NO AUTOMATON DATA</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- State Information Popup -->
+            <div id="states-popup" class="info-popup-overlay" style="display:none;">
+                <div class="info-popup">
+                    <div class="info-popup-header">
+                        <h2>
+                            <span class="popup-marker">◆</span>
+                            STATE INFORMATION
+                        </h2>
+                        <button class="info-popup-close" data-close="states-popup">
+                            <span>×</span>
+                        </button>
+                    </div>
+                    <div class="info-popup-body" id="state-info-container">
+                        <div class="empty-state">
+                            <div class="empty-icon">∅</div>
+                            <p>NO STATE DATA</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conversion Log Popup -->
+            <div id="log-popup" class="info-popup-overlay" style="display:none;">
+                <div class="info-popup">
+                    <div class="info-popup-header">
+                        <h2>
+                            <span class="popup-marker">◆</span>
+                            CONVERSION LOG
+                        </h2>
+                        <button class="info-popup-close" data-close="log-popup">
+                            <span>×</span>
+                        </button>
+                    </div>
+                    <div class="info-popup-body" id="conversion-log">
+                        <div class="empty-state">
+                            <div class="empty-icon">∅</div>
+                            <p>NO CONVERSION DATA</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Batch Testing Section -->
+            <section class="batch-test-section" id="batch-test-section">
+                <div class="section-header">
+                    <h3>
+                        <span class="section-marker">▸</span>
+                        BATCH TESTING
+                    </h3>
+                </div>
+                <div id="batch-test-content" class="batch-test-content">
+                    <div class="batch-input-area">
+                        <label for="batch-test-input">MULTIPLE INPUT STRINGS (ONE PER LINE)</label>
+                        <textarea id="batch-test-input" rows="4"
+                            placeholder="abb&#10;aabb&#10;babb&#10;abab"></textarea>
+                        <button id="batch-test-btn" class="btn-primary">
+                            <span class="btn-marker">▶</span> RUN BATCH TEST
+                        </button>
+                    </div>
+                    <div id="batch-test-results" class="batch-results"></div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Help Modal -->
+        <div id="help-modal" class="modal" role="dialog" aria-labelledby="help-title" aria-hidden="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="help-title">
+                        <span class="popup-marker">◆</span>
+                        HELP & DOCUMENTATION
+                    </h2>
+                    <button class="modal-close" aria-label="Close">
+                        <span>×</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <section class="help-section">
+                        <h3>REGULAR EXPRESSION SYNTAX</h3>
+                        <table class="syntax-table">
+                            <thead>
+                                <tr>
+                                    <th>OPERATOR</th>
+                                    <th>DESCRIPTION</th>
+                                    <th>EXAMPLE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>a</code></td>
+                                    <td>Literal character</td>
+                                    <td><code>a</code> matches "a"</td>
+                                </tr>
+                                <tr>
+                                    <td><code>|</code></td>
+                                    <td>Alternation (OR)</td>
+                                    <td><code>a|b</code> matches "a" or "b"</td>
+                                </tr>
+                                <tr>
+                                    <td><code>*</code></td>
+                                    <td>Kleene star (0 or more)</td>
+                                    <td><code>a*</code> matches "", "a", "aa", ...</td>
+                                </tr>
+                                <tr>
+                                    <td><code>+</code></td>
+                                    <td>Plus (1 or more)</td>
+                                    <td><code>a+</code> matches "a", "aa", ...</td>
+                                </tr>
+                                <tr>
+                                    <td><code>?</code></td>
+                                    <td>Optional (0 or 1)</td>
+                                    <td><code>a?</code> matches "" or "a"</td>
+                                </tr>
+                                <tr>
+                                    <td><code>()</code></td>
+                                    <td>Grouping</td>
+                                    <td><code>(ab)*</code> matches "", "ab", "abab", ...</td>
+                                </tr>
+                                <tr>
+                                    <td><code>ε</code></td>
+                                    <td>Epsilon (empty string)</td>
+                                    <td><code>ε</code> matches empty string</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+
+                    <section class="help-section">
+                        <h3>KEYBOARD SHORTCUTS</h3>
+                        <ul class="shortcuts-list">
+                            <li><kbd>Ctrl</kbd> + <kbd>Enter</kbd> <span>→ Visualize regex</span></li>
+                            <li><kbd>Ctrl</kbd> + <kbd>T</kbd> <span>→ Test string</span></li>
+                            <li><kbd>Ctrl</kbd> + <kbd>E</kbd> <span>→ Export SVG</span></li>
+                            <li><kbd>+</kbd> / <kbd>-</kbd> <span>→ Zoom in/out</span></li>
+                            <li><kbd>R</kbd> <span>→ Reset view</span></li>
+                            <li><kbd>?</kbd> <span>→ Show help</span></li>
+                        </ul>
+                    </section>
+
+                    <section class="help-section">
+                        <h3>CONVERSION PROCESS</h3>
+                        <ol class="process-steps">
+                            <li><strong>REGEX:</strong> Input regular expression</li>
+                            <li><strong>ε-NFA:</strong> Convert to epsilon-NFA using Thompson's construction</li>
+                            <li><strong>NFA:</strong> Remove epsilon transitions</li>
+                            <li><strong>DFA:</strong> Convert to DFA using subset construction</li>
+                        </ol>
+                    </section>
+
+                    <section class="help-section">
+                        <h3>USAGE TIPS</h3>
+                        <ul>
+                            <li>Click on stage buttons to view different conversion steps</li>
+                            <li>Hover over states to see their details</li>
+                            <li>Use the batch testing feature to test multiple strings at once</li>
+                            <li>Export visualizations for use in presentations or reports</li>
+                        </ul>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- Examples Modal -->
+        <div id="examples-modal" class="modal" role="dialog" aria-labelledby="examples-title" aria-hidden="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="examples-title">
+                        <span class="popup-marker">◆</span>
+                        EXAMPLE PATTERNS
+                    </h2>
+                    <button class="modal-close" aria-label="Close">
+                        <span>×</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="examples-grid">
+                        <div class="example-card" data-regex="(a|b)abb">
+                            <h4>String Ending in "abb"</h4>
+                            <code>(a|b)abb</code>
+                            <p>Matches strings with one a or b followed by "abb"</p>
+                            <button class="btn-secondary try-example-btn">TRY THIS</button>
+                        </div>
+                        <div class="example-card" data-regex="ab|ba">
+                            <h4>Either "ab" or "ba"</h4>
+                            <code>ab|ba</code>
+                            <p>Matches exactly "ab" or "ba"</p>
+                            <button class="btn-secondary try-example-btn">TRY THIS</button>
+                        </div>
+                        <div class="example-card" data-regex="a(a|b)b">
+                            <h4>Middle Choice</h4>
+                            <code>a(a|b)b</code>
+                            <p>Matches "aab" or "abb"</p>
+                            <button class="btn-secondary try-example-btn">TRY THIS</button>
+                        </div>
+                        <div class="example-card" data-regex="(aa|bb)">
+                            <h4>Double Letters</h4>
+                            <code>(aa|bb)</code>
+                            <p>Matches "aa" or "bb"</p>
+                            <button class="btn-secondary try-example-btn">TRY THIS</button>
+                        </div>
+                        <div class="example-card" data-regex="a+b+">
+                            <h4>At Least One of Each</h4>
+                            <code>a+b+</code>
+                            <p>One or more a's followed by one or more b's</p>
+                            <button class="btn-secondary try-example-btn">TRY THIS</button>
+                        </div>
+                        <div class="example-card" data-regex="(ab|cd)(e|f)">
+                            <h4>Two-Part Pattern</h4>
+                            <code>(ab|cd)(e|f)</code>
+                            <p>Matches "abe", "abf", "cde", or "cdf"</p>
+                            <button class="btn-secondary try-example-btn">TRY THIS</button>
+                        </div>
+                        <div class="example-card" data-regex="a(b|c)d(e|f)">
+                            <h4>Branching Path</h4>
+                            <code>a(b|c)d(e|f)</code>
+                            <p>Matches "abde", "abdf", "acde", or "acdf"</p>
+                            <button class="btn-secondary try-example-btn">TRY THIS</button>
+                        </div>
+                        <div class="example-card" data-regex="(a|b)(c|d)(e|f)">
+                            <h4>Three Choices</h4>
+                            <code>(a|b)(c|d)(e|f)</code>
+                            <p>Every combination of one from each group</p>
+                            <button class="btn-secondary try-example-btn">TRY THIS</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <p>© 2024 AUTOMATA VISUALIZER</p>
+                </div>
+                <div class="footer-section">
+                    <a href="#" id="about-link">ABOUT</a>
+                    <span class="separator">•</span>
+                    <a href="https://github.com" target="_blank" rel="noopener">GITHUB</a>
+                    <span class="separator">•</span>
+                    <button id="report-issue-btn" class="link-btn">REPORT ISSUE</button>
+                </div>
+                <div class="footer-section">
+                    <span class="version">[v1.0.0]</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner">
+            <div class="spinner-inner"></div>
+        </div>
+        <div class="loading-text">PROCESSING...</div>
+    </div>
+
+    <!-- Error Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script type="module" src="src/main.js"></script>
+</body>
+
+</html>
